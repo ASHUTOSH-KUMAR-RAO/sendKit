@@ -69,20 +69,6 @@ Each interface only translates *its* input format into a call to the core, and t
 
 🚧 **Active development.** This project is being built incrementally and in public. Core sending logic and the CLI are functional; MCP servers, OAuth, and packaging are in progress.
 
-## Roadmap
-
-- [x] CLI
-- [x] Shared Core
-- [ ] Local MCP Server
-- [ ] Remote MCP Server
-- [ ] OAuth
-- [ ] CLI Configuration
-- [ ] Formatting & Linting
-- [ ] Bundling
-- [ ] Publishing to npm
-- [ ] OAuth Deployment
-- [ ] Anthropic Skill
-
 ## Planned Extensions
 
 Beyond the core roadmap above, the following are planned:
