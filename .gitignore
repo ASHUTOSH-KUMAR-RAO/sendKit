@@ -12,6 +12,8 @@ build/
 .env
 .env.*
 !.env.example
+.mcp.json
+!.mcp.json.example
 
 # Logs
 *.log
