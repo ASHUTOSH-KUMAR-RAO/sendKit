@@ -6,6 +6,7 @@
   "workspaces":["packages/*"],
   "scripts": {
     "dev:cli":"bun run packages/cli/src/index.ts",
-    "dev:mcp":"bun run packages/local-mcp/src/index.ts"
+    "dev:mcp":"bun run packages/local-mcp/src/index.ts",
+    "dev:remote-mcp":"bun run packages/remote-mcp/src/index.ts"
   }
 }
