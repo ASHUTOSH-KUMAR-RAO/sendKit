@@ -1,12 +1,19 @@
-
 {
-  "name":"sendkit-wrokspace",
-  "private":"true",
+  "name": "sendkit-wrokspace",
+  "private": "true",
   "type": "module",
-  "workspaces":["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev:cli":"bun run packages/cli/src/index.ts",
-    "dev:mcp":"bun run packages/local-mcp/src/index.ts",
-    "dev:remote-mcp":"bun run packages/remote-mcp/src/index.ts"
+    "dev:cli": "bun run packages/cli/src/index.ts",
+    "dev:mcp": "bun run packages/local-mcp/src/index.ts",
+    "dev:remote-mcp": "bun run packages/remote-mcp/src/index.ts",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
+    "lint:ci": "oxlint . --deny correctness --deny suspicious"
+  },
+  "devDependencies": {
+    "oxlint": "^1.73.0"
   }
 }
