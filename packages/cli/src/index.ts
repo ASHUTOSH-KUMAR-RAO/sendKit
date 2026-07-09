@@ -2,25 +2,76 @@ import { Command } from "commander";
 // Core sending logic now lives in the shared core package (packages/core),
 // not here. This CLI only calls it and formats the result for the terminal.
 import { sendTelegramMessage } from "sendkit-core";
+import {
+  deleteConfigValue,
+  getConfigValue,
+  isSensitiveKey,
+  listConfig,
+  maskSecret,
+  setConfigValue,
+} from "./config";
+import { runInit } from "./init";
 
 const program = new Command();
 
+program.name("sendkit").description("sendkit tutorial cli");
+
+// ============================================================================
+// `init` command — interactive first-time setup
+// See packages/cli/src/init.ts for the full explanation of WHY this exists
+// and how it validates the token before saving it.
+// ============================================================================
 program
-  .name("sendkit")
-  .description("sendkit tutorial cli")
+  .command("init")
+  .description(
+    "interactively set up sendkit (prompts for a bot token and sends a real test message to verify it)",
+  )
+  .action(async () => {
+    await runInit();
+  });
+
+// ============================================================================
+// `telegram` command — send a message
+// ============================================================================
+program
   .command("telegram")
   .description("send a telegram message")
   .argument("<chatId>", "Telegram chat ID")
   .argument("<message>", "Message text to send")
   .action(async (chatId: string, message: string) => {
-    // The bot token is read here (in the CLI) because it's specific to how
-    // the CLI is invoked — from an environment variable. Other interfaces
-    // (e.g. an MCP server) may get the token a different way, so this
-    // env-var lookup stays in the CLI, not in the shared core.
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    // BOT TOKEN LOOKUP ORDER: env variable first, then config file.
+    //
+    // Why env var wins if both are set:
+    // Environment variables are typically set deliberately for a single
+    // command or session (e.g. in a CI pipeline, a Docker container, or a
+    // one-off `TELEGRAM_BOT_TOKEN=xxx sendkit telegram ...` override to
+    // temporarily use a different bot without touching the saved config).
+    // That's a more specific, "just this once" signal than the config file,
+    // which represents the user's persistent default. So the more specific
+    // source (env var) takes priority over the more general one (config).
+    //
+    // This mirrors how most CLI tools layer configuration: env vars >
+    // config file > built-in defaults.
+    //
+    // WHY `?.trim() || undefined` INSTEAD OF JUST `??`:
+    // `??` (nullish coalescing) only falls back to the config file when the
+    // env var is `null` or `undefined` — but an env var can also be set to
+    // an EMPTY STRING (e.g. `$env:TELEGRAM_BOT_TOKEN = ""` in PowerShell,
+    // or `TELEGRAM_BOT_TOKEN=` in bash). An empty string is neither null
+    // nor undefined, so plain `??` would treat "" as a real value and never
+    // check the config file — even though an empty string clearly isn't a
+    // usable token. `.trim() || undefined` normalizes both "not set" and
+    // "set to blank/whitespace" into the same `undefined` case, so both
+    // correctly fall through to the config file.
+    const envToken = process.env.TELEGRAM_BOT_TOKEN?.trim() || undefined;
+    const botToken = envToken ?? getConfigValue("botToken");
 
     if (!botToken) {
-      console.error("Error: Missing TELEGRAM_BOT_TOKEN env variable");
+      console.error(
+        "Error: no Telegram bot token found.\n" +
+          "Set one with:  sendkit config set botToken <your-token>\n" +
+          "Or provide it for a single run with:  TELEGRAM_BOT_TOKEN=<your-token> sendkit telegram ...",
+      );
       process.exit(1);
     }
 
@@ -59,6 +110,80 @@ program
     console.log(
       `Message sent successfully (message_id: ${result.data.messageId})`,
     );
+  });
+
+// ============================================================================
+// `config` command group — persistent settings, backed by ~/.sendkitrc
+// See packages/cli/src/config.ts for the full explanation of WHY this
+// exists and HOW the file is stored/secured.
+// ============================================================================
+const config = program
+  .command("config")
+  .description("manage sendkit configuration");
+
+config
+  .command("set")
+  .description("set a config value (e.g. sendkit config set botToken <token>)")
+  .argument("<key>", "config key, e.g. botToken")
+  .argument("<value>", "value to store")
+  .action((key: string, value: string) => {
+    setConfigValue(key, value);
+    // Don't echo the raw value back if it looks sensitive (bot tokens,
+    // secrets, etc.) — the user just typed it, no need to redisplay it in
+    // full in the terminal / shell history scroll-back.
+    const display = isSensitiveKey(key) ? maskSecret(value) : value;
+    console.log(`Set ${key} = ${display}`);
+  });
+
+config
+  .command("get")
+  .description("print a single config value")
+  .argument("<key>", "config key to read")
+  .action((key: string) => {
+    const value = getConfigValue(key);
+    if (value === undefined) {
+      console.error(`No value set for "${key}"`);
+      process.exit(1);
+    }
+    // `get` intentionally prints the RAW value (not masked), unlike `list`.
+    // Reasoning: `get` is a deliberate, single-key lookup — the user is
+    // explicitly asking for this exact value, often to copy it somewhere
+    // (e.g. `sendkit config get botToken` piped into another tool). Masking
+    // here would make the command useless for that purpose. `list`, on the
+    // other hand, is a broad overview where accidentally exposing secrets
+    // on screen (e.g. during a screen share) is a real risk worth
+    // defaulting against.
+    console.log(value);
+  });
+
+config
+  .command("list")
+  .description("list all config values (sensitive values are masked)")
+  .action(() => {
+    const all = listConfig();
+    const keys = Object.keys(all);
+
+    if (keys.length === 0) {
+      console.log(
+        "No config set. Use `sendkit config set <key> <value>` to add one.",
+      );
+      return;
+    }
+
+    for (const key of keys) {
+      const value = all[key];
+      const display = isSensitiveKey(key) ? maskSecret(value) : value;
+      console.log(`${key} = ${display}`);
+    }
+  });
+
+config
+  .command("delete")
+  .description("remove a config value")
+  .argument("<key>", "config key to delete")
+  .action((key: string) => {
+    deleteConfigValue(key);
+    console.log(`Deleted ${key}`);
   });
 
 program.parseAsync(process.argv);
