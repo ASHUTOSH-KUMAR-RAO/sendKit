@@ -6,6 +6,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --format esm --external @modelcontextprotocol/sdk --external hono --external zod"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "hono": "^4.6.0",

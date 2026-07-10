@@ -3,9 +3,13 @@
   "version": "0.0.0",
   "private": "true",
   "type": "module",
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --external commander --external zod"
+  },
   "dependencies": {
     "commander": "^15.0.0",
-    "sendkit-core":"workspace:*"
+    "zod": "^4.4.3",
+    "sendkit-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.0.0"
