@@ -1,13 +1,20 @@
 {
   "name": "sendkit-core",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --external zod"
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --external zod && tsc"
   },
   "dependencies": {
     "zod": "^4.4.3"

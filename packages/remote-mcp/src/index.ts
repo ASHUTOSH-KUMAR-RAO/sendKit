@@ -4,9 +4,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { sendTelegramMessage } from "sendkit-core";
 import { z } from "zod";
-import { validateAccessToken } from "../../local-mcp/src/oauth-store";
-import { getUserById } from "../../local-mcp/src/users";
-import { authRoutes } from "../../local-mcp/src/routes/auth";
+import { validateAccessToken } from "sendkit-mcp/oauth-store";
+import { getUserById } from "sendkit-mcp/users";
+import { authRoutes } from "sendkit-mcp/routes/auth";
 
 
 // =============================================================================

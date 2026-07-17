@@ -1,17 +1,40 @@
 {
   "name": "sendkit-mcp",
-  "version": "0.0.0",
-  "private": "true",
+  "version": "0.1.0",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "sendkit-mcp": "dist/index.js"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./oauth-store": {
+      "types": "./dist/oauth-store.d.ts",
+      "import": "./dist/oauth-store.js"
+    },
+    "./users": {
+      "types": "./dist/users.d.ts",
+      "import": "./dist/users.js"
+    },
+    "./routes/auth": {
+      "types": "./dist/routes/auth.d.ts",
+      "import": "./dist/routes/auth.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --external @modelcontextprotocol/sdk --external zod"
+    "build": "bun build ./src/index.ts ./src/oauth-store.ts ./src/users.ts ./src/routes/auth.ts --outdir ./dist --target node --format esm --external @modelcontextprotocol/sdk --external zod && tsc",
+    "postbuild": "node -e \"require('fs').chmodSync('./dist/index.js', 0o755)\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "sendkit-core": "workspace:*",
+    "sendkit-core": "^0.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

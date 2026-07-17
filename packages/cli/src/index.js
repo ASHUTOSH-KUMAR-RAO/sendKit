@@ -1,46 +1,31 @@
-#!/usr/bin/env node
-
 import { Command } from "commander";
 // Core sending logic now lives in the shared core package (packages/core),
 // not here. This CLI only calls it and formats the result for the terminal.
 import { sendTelegramMessage } from "sendkit-core";
-import {
-  deleteConfigValue,
-  getConfigValue,
-  isSensitiveKey,
-  listConfig,
-  maskSecret,
-  setConfigValue,
-} from "./config";
+import { deleteConfigValue, getConfigValue, isSensitiveKey, listConfig, maskSecret, setConfigValue, } from "./config";
 import { runInit } from "./init";
-
 const program = new Command();
-
 program.name("sendkit").description("sendkit tutorial cli");
-
 // ============================================================================
 // `init` command — interactive first-time setup
 // See packages/cli/src/init.ts for the full explanation of WHY this exists
 // and how it validates the token before saving it.
 // ============================================================================
 program
-  .command("init")
-  .description(
-    "interactively set up sendkit (prompts for a bot token and sends a real test message to verify it)",
-  )
-  .action(async () => {
+    .command("init")
+    .description("interactively set up sendkit (prompts for a bot token and sends a real test message to verify it)")
+    .action(async () => {
     await runInit();
-  });
-
+});
 // ============================================================================
 // `telegram` command — send a message
 // ============================================================================
 program
-  .command("telegram")
-  .description("send a telegram message")
-  .argument("<chatId>", "Telegram chat ID")
-  .argument("<message>", "Message text to send")
-  .action(async (chatId: string, message: string) => {
+    .command("telegram")
+    .description("send a telegram message")
+    .argument("<chatId>", "Telegram chat ID")
+    .argument("<message>", "Message text to send")
+    .action(async (chatId, message) => {
     // BOT TOKEN LOOKUP ORDER: env variable first, then config file.
     //
     // Why env var wins if both are set:
@@ -67,16 +52,12 @@ program
     // correctly fall through to the config file.
     const envToken = process.env.TELEGRAM_BOT_TOKEN?.trim() || undefined;
     const botToken = envToken ?? getConfigValue("botToken");
-
     if (!botToken) {
-      console.error(
-        "Error: no Telegram bot token found.\n" +
-          "Set one with:  sendkit config set botToken <your-token>\n" +
-          "Or provide it for a single run with:  TELEGRAM_BOT_TOKEN=<your-token> sendkit telegram ...",
-      );
-      process.exit(1);
+        console.error("Error: no Telegram bot token found.\n" +
+            "Set one with:  sendkit config set botToken <your-token>\n" +
+            "Or provide it for a single run with:  TELEGRAM_BOT_TOKEN=<your-token> sendkit telegram ...");
+        process.exit(1);
     }
-
     // All validation (chatId format, message length, token presence) and
     // the actual Telegram API call now happen INSIDE sendTelegramMessage,
     // defined in packages/core/src/operations.ts, using Zod schemas from
@@ -87,16 +68,14 @@ program
     // file, but has moved to the core so it can be reused by the CLI, the
     // MCP servers, and the Skill without duplicating logic.
     const result = await sendTelegramMessage({ chatId, message, botToken });
-
     // sendTelegramMessage never throws (it uses Zod's .safeParse() internally
     // — see the comment block in operations.ts for why). It always returns
     // { success: true, data } or { success: false, error }, so we just
     // check `result.success` here instead of using try/catch.
     if (!result.success) {
-      console.error(`Error: ${result.error}`);
-      process.exit(1);
+        console.error(`Error: ${result.error}`);
+        process.exit(1);
     }
-
     // result.data matches the shape of telegramMessageOutputSchema
     // (packages/core/src/schemas.ts): { ok: true, chatId, messageId }.
     //
@@ -109,43 +88,38 @@ program
     //
     // General rule: print information the user didn't already have, or
     // that proves the action succeeded. Don't echo back what they just typed.
-    console.log(
-      `Message sent successfully (message_id: ${result.data.messageId})`,
-    );
-  });
-
+    console.log(`Message sent successfully (message_id: ${result.data.messageId})`);
+});
 // ============================================================================
 // `config` command group — persistent settings, backed by ~/.sendkitrc
 // See packages/cli/src/config.ts for the full explanation of WHY this
 // exists and HOW the file is stored/secured.
 // ============================================================================
 const config = program
-  .command("config")
-  .description("manage sendkit configuration");
-
+    .command("config")
+    .description("manage sendkit configuration");
 config
-  .command("set")
-  .description("set a config value (e.g. sendkit config set botToken <token>)")
-  .argument("<key>", "config key, e.g. botToken")
-  .argument("<value>", "value to store")
-  .action((key: string, value: string) => {
+    .command("set")
+    .description("set a config value (e.g. sendkit config set botToken <token>)")
+    .argument("<key>", "config key, e.g. botToken")
+    .argument("<value>", "value to store")
+    .action((key, value) => {
     setConfigValue(key, value);
     // Don't echo the raw value back if it looks sensitive (bot tokens,
     // secrets, etc.) — the user just typed it, no need to redisplay it in
     // full in the terminal / shell history scroll-back.
     const display = isSensitiveKey(key) ? maskSecret(value) : value;
     console.log(`Set ${key} = ${display}`);
-  });
-
+});
 config
-  .command("get")
-  .description("print a single config value")
-  .argument("<key>", "config key to read")
-  .action((key: string) => {
+    .command("get")
+    .description("print a single config value")
+    .argument("<key>", "config key to read")
+    .action((key) => {
     const value = getConfigValue(key);
     if (value === undefined) {
-      console.error(`No value set for "${key}"`);
-      process.exit(1);
+        console.error(`No value set for "${key}"`);
+        process.exit(1);
     }
     // `get` intentionally prints the RAW value (not masked), unlike `list`.
     // Reasoning: `get` is a deliberate, single-key lookup — the user is
@@ -156,36 +130,29 @@ config
     // on screen (e.g. during a screen share) is a real risk worth
     // defaulting against.
     console.log(value);
-  });
-
+});
 config
-  .command("list")
-  .description("list all config values (sensitive values are masked)")
-  .action(() => {
+    .command("list")
+    .description("list all config values (sensitive values are masked)")
+    .action(() => {
     const all = listConfig();
     const keys = Object.keys(all);
-
     if (keys.length === 0) {
-      console.log(
-        "No config set. Use `sendkit config set <key> <value>` to add one.",
-      );
-      return;
+        console.log("No config set. Use `sendkit config set <key> <value>` to add one.");
+        return;
     }
-
     for (const key of keys) {
-      const value = all[key];
-      const display = isSensitiveKey(key) ? maskSecret(value) : value;
-      console.log(`${key} = ${display}`);
+        const value = all[key];
+        const display = isSensitiveKey(key) ? maskSecret(value) : value;
+        console.log(`${key} = ${display}`);
     }
-  });
-
+});
 config
-  .command("delete")
-  .description("remove a config value")
-  .argument("<key>", "config key to delete")
-  .action((key: string) => {
+    .command("delete")
+    .description("remove a config value")
+    .argument("<key>", "config key to delete")
+    .action((key) => {
     deleteConfigValue(key);
     console.log(`Deleted ${key}`);
-  });
-
+});
 program.parseAsync(process.argv);

@@ -1,18 +1,26 @@
 {
   "name": "sendkit-remote-mcp",
-  "version": "0.0.0",
-  "private": "true",
+  "version": "0.1.0",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun --format esm --external @modelcontextprotocol/sdk --external hono --external zod"
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --format esm --external @modelcontextprotocol/sdk --external hono --external zod && tsc"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "hono": "^4.6.0",
-    "sendkit-core": "workspace:*",
+    "sendkit-core": "^0.1.0",
+    "sendkit-mcp": "^0.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

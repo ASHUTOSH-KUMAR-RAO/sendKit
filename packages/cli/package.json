@@ -1,15 +1,29 @@
 {
-  "name": "sendkit",
-  "version": "0.0.0",
-  "private": "true",
+  "name": "sendkit-cli",
+  "version": "0.1.0",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "sendkit": "dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --external commander --external zod"
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --external commander --external zod --external sendkit-core && tsc",
+    "postbuild": "node -e \"require('fs').chmodSync('./dist/index.js', 0o755)\""
   },
   "dependencies": {
     "commander": "^15.0.0",
     "zod": "^4.4.3",
-    "sendkit-core": "workspace:*"
+   "sendkit-core": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^26.0.0"
