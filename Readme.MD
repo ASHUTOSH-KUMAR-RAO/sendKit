@@ -1,70 +1,3 @@
-# sendkit
-
-**One core. Every AI interface.**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-fbf0df?logo=bun&logoColor=white)](https://bun.sh)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![npm sendkit-core](https://img.shields.io/npm/v/sendkit-core?label=sendkit-core)](https://www.npmjs.com/package/sendkit-core)
-[![npm sendkit-cli](https://img.shields.io/npm/v/sendkit-cli?label=sendkit-cli)](https://www.npmjs.com/package/sendkit-cli)
-[![Status](https://img.shields.io/badge/status-work%20in%20progress-orange)](#roadmap)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
-
-sendkit is a messaging toolkit built around a single shared core that powers a CLI, a local MCP server, a remote MCP server, and an Anthropic Skill — write your sending logic once, and use it from a terminal, Claude Desktop, ChatGPT, or any MCP-compatible agent.
-
-The first supported channel is **Telegram**, with more channels planned.
-
----
-
-## Table of Contents
-
-- [Why sendkit](#why-sendkit)
-- [Architecture](#architecture)
-- [Packages](#packages)
-- [Project Status](#project-status)
-- [Roadmap](#roadmap)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Why sendkit
-
-AI tooling keeps shifting under developers' feet — MCP servers one month, Skills the next, agents expecting CLI access after that. The usual response is to write the same "send a message" logic over and over for every new interface.
-
-sendkit takes a different approach: the core logic lives in **one place**, and every interface (CLI, local MCP, remote MCP, Skill) is a thin adapter on top of it. Add a new interface without touching the underlying logic. Fix a bug once, and every interface benefits.
-
-## Architecture
-
-| Layer | Responsibility |
-|---|---|
-| **Core** | The actual sending/business logic. Has no knowledge of *how* it's invoked. |
-| **CLI** | A `commander`-based terminal interface for direct, scriptable use. |
-| **Local MCP Server** | Exposes the core over stdio, for clients like Claude Desktop. |
-| **Remote MCP Server** | Exposes the core over HTTP/SSE with OAuth, for remote clients like ChatGPT. |
-| **Skill** | Exposes the core as an Anthropic Skill. |
-
-```
-                ┌─────────────┐
-                │  CLI / MCP  │
-                │  / Skill    │
-                └──────┬──────┘
-                       │
-               ┌───────▼────────┐
-               │   Shared Core  │
-               │ (sending logic)│
-               └───────┬────────┘
-                       │
-               ┌───────▼────────┐
-               │ Provider APIs  │
-               │ (Telegram, …)  │
-               └────────────────┘
-```
-
 Each interface only translates *its* input format into a call to the core, and translates the core's result back into *its* expected output format (stdout for CLI, JSON-RPC for MCP, etc.).
 
 ## Packages
@@ -151,6 +84,38 @@ bun run dev:cli telegram <chatId> "<message>"
 > Don't know your chat ID? Send any message to your bot, then hit `https://api.telegram.org/bot<TOKEN>/getUpdates` to find it under `message.chat.id`.
 
 More usage examples (MCP, Skill) will be added here as those interfaces are completed.
+
+## Running with Docker
+
+`sendkit-remote-mcp` (the OAuth-secured remote MCP server) can be built and run as a Docker container. This is the recommended way to run it outside of local development.
+
+### Build the image
+
+From the repo root:
+
+```bash
+docker build -t sendkit-remote-mcp .
+```
+
+This is a multi-stage build: it builds `sendkit-core`, `sendkit-mcp`, and `sendkit-remote-mcp` in order, then produces a lean runtime image containing only the built `remote-mcp` output and its production dependencies.
+
+### Run the container
+
+```bash
+docker run -p 3000:3000 -e DATABASE_PATH=/app/sendkit.db sendkit-remote-mcp
+```
+
+- **`PORT`** — port the server listens on (defaults to `3000`; Railway and similar platforms set this automatically).
+- **`DATABASE_PATH`** — path to the SQLite database file used for OAuth users/tokens. Defaults to `sendkit.db` in the working directory if unset. In a container, point this at a mounted volume so data survives restarts (e.g. `/data/sendkit.db`).
+
+Once running, a quick health check:
+
+```bash
+curl http://localhost:3000/
+# → sendkit remote-mcp is running
+```
+
+> **Cloud deployment (Railway, etc.):** a step-by-step guide for deploying this image to a hosting platform with a persistent volume will be added here once that deployment is live.
 
 ## Project Structure
 
