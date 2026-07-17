@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-fbf0df?logo=bun&logoColor=white)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![npm sendkit-core](https://img.shields.io/npm/v/sendkit-core?label=sendkit-core)](https://www.npmjs.com/package/sendkit-core)
+[![npm sendkit-cli](https://img.shields.io/npm/v/sendkit-cli?label=sendkit-cli)](https://www.npmjs.com/package/sendkit-cli)
 [![Status](https://img.shields.io/badge/status-work%20in%20progress-orange)](#roadmap)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
@@ -18,9 +20,9 @@ The first supported channel is **Telegram**, with more channels planned.
 
 - [Why sendkit](#why-sendkit)
 - [Architecture](#architecture)
+- [Packages](#packages)
 - [Project Status](#project-status)
 - [Roadmap](#roadmap)
-- [Planned Extensions](#planned-extensions)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
 - [Usage](#usage)
@@ -65,22 +67,20 @@ sendkit takes a different approach: the core logic lives in **one place**, and e
 
 Each interface only translates *its* input format into a call to the core, and translates the core's result back into *its* expected output format (stdout for CLI, JSON-RPC for MCP, etc.).
 
+## Packages
+
+All packages are published on npm and can be installed independently, depending on which interface you need.
+
+| Package | npm | Description |
+|---|---|---|
+| `sendkit-core` | [npm](https://www.npmjs.com/package/sendkit-core) | Shared sending logic, used internally by every other package. |
+| `sendkit-mcp` | [npm](https://www.npmjs.com/package/sendkit-mcp) | Local MCP server (stdio) — for Claude Desktop and similar clients. |
+| `sendkit-remote-mcp` | [npm](https://www.npmjs.com/package/sendkit-remote-mcp) | Remote MCP server (HTTP + OAuth 2.1/PKCE) — for remote agent clients. |
+| `sendkit-cli` | [npm](https://www.npmjs.com/package/sendkit-cli) | Terminal CLI. Installs as the `sendkit` command. |
+
 ## Project Status
 
-🚧 **Active development.** This project is being built incrementally and in public. Core sending logic and the CLI are functional; MCP servers, OAuth, and packaging are in progress.
-
-## Planned Extensions
-
-Beyond the core roadmap above, the following are planned:
-
-| Feature | Description |
-|---|---|
-| **Multi-channel support** | WhatsApp, Discord, Slack, and email, in addition to Telegram. |
-| **Message templates** | Reusable, named message templates instead of retyping the same text. |
-| **Retry with backoff** | Automatic retries with exponential backoff on provider rate limits (e.g. Telegram's `429`). |
-| **Send history & logging** | A local record of sent messages — channel, recipient, status, timestamp — for debugging and auditing. |
-| **Multi-profile config** | Multiple bot/account profiles, switchable via flag (e.g. `sendkit --profile work telegram ...`). |
-| **Two-way communication** | Capture replies sent back by the recipient via webhooks or polling, so conversations aren't one-directional. |
+🚧 **Active development.** This project is being built incrementally and in public. Core sending logic, the CLI, and both MCP servers are functional and published to npm. OAuth deployment, the Anthropic Skill, and additional channels are in progress.
 
 ## Tech Stack
 
@@ -88,15 +88,25 @@ Beyond the core roadmap above, the following are planned:
 - **TypeScript** — end to end
 - **[Commander.js](https://github.com/tj/commander.js)** — CLI framework
 - **[Model Context Protocol (MCP)](https://modelcontextprotocol.io)** — local and remote agent integration
+- **[Hono](https://hono.dev)** — remote MCP server's HTTP layer
+- **[Zod](https://zod.dev)** — schema validation across every package
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) installed (`curl -fsSL https://bun.sh/install | bash`)
+- [Bun](https://bun.sh) installed (`curl -fsSL https://bun.sh/install | bash`) — needed if you're working on the monorepo itself
+- [Node.js](https://nodejs.org) — needed if you're just installing the published packages via npm
 - A [Telegram Bot Token](https://core.telegram.org/bots#how-do-i-create-a-bot) (via [@BotFather](https://t.me/BotFather))
 
-### Installation
+### Option A — Install the CLI from npm (quickest)
+
+```bash
+npm install -g sendkit-cli
+sendkit init
+```
+
+### Option B — Clone and run the monorepo (for development)
 
 ```bash
 git clone https://github.com/ASHUTOSH-KUMAR-RAO/sendKit.git
@@ -116,18 +126,26 @@ cp .env.example .env
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 ```
 
+Alternatively, if you installed the CLI via npm, you can run `sendkit init` to be prompted for a bot token interactively, or set it with `sendkit config set botToken <token>`.
+
 ## Usage
 
-### CLI
+### CLI (installed via npm)
 
 ```bash
-bun run dev:cli telegram <chatId> "<message>"
+sendkit telegram <chatId> "<message>"
 ```
 
 **Example:**
 
 ```bash
-bun run dev:cli telegram 8709937518 "Hello from sendkit!"
+sendkit telegram 8709937518 "Hello from sendkit!"
+```
+
+### CLI (from the monorepo, during development)
+
+```bash
+bun run dev:cli telegram <chatId> "<message>"
 ```
 
 > Don't know your chat ID? Send any message to your bot, then hit `https://api.telegram.org/bot<TOKEN>/getUpdates` to find it under `message.chat.id`.
@@ -136,11 +154,11 @@ More usage examples (MCP, Skill) will be added here as those interfaces are comp
 
 ## Project Structure
 
-This is a Bun-managed monorepo. Shared logic lives in a core package; every interface (CLI, MCP servers, Skill) is a separate workspace package that depends on it.
+This is a Bun-managed monorepo. Shared logic lives in `packages/core`; every interface (`packages/cli`, `packages/local-mcp`, `packages/remote-mcp`, and the upcoming Skill) is a separate workspace package that depends on it. Each package is published to npm independently — see [Packages](#packages) above.
 
 ## Contributing
 
-This project is primarily a learning build, but suggestions, issues, and pull requests are welcome. If you spot a bug or have an idea for one of the planned extensions, feel free to open an issue.
+This project is primarily a learning build, but suggestions, issues, and pull requests are welcome. Planned extensions (additional channels, templates, scheduling, and more) will be documented here as they're actually built.
 
 ## License
 
