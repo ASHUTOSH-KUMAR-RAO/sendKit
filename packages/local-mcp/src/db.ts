@@ -6,9 +6,12 @@ import { Database } from "bun:sqlite";
 // SQLite database setup
 // -----------------------------------------------------------------------
 // `bun:sqlite` is built into Bun — no npm package needed.
-// The database file will be created at the project root as `sendkit.db`
-// the first time this file runs.
-export const db = new Database("sendkit.db", { create: true });
+// In development, defaults to "sendkit.db" in the current working directory.
+// In production (Railway), set DATABASE_PATH env var to point at the
+// mounted volume, e.g. "/data/sendkit.db", so data survives restarts/redeploys.
+const dbPath = process.env.DATABASE_PATH ?? "sendkit.db";
+
+export const db = new Database(dbPath, { create: true });
 
 // Enable WAL mode for better concurrent read/write performance.
 db.exec("PRAGMA journal_mode = WAL;");
